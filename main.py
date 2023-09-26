@@ -36,3 +36,6 @@ def main():
             print('Option \'' + main_menu_input + '\' isn\'t a valid selection')
 
     print("Ingredient Tracker Application Closing. Thank you!")
+
+
+main()
