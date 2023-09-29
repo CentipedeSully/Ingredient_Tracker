@@ -4,8 +4,8 @@ class Ingredient:
         self.name_str = name
         self.composition_dict = dict()
 
-    def add_chemical(self, chem_name, chem_concentration):
-        self.composition_dict[chem_name] = chem_concentration
+    def add_chemical(self, chem_name, chem_concentration_int):
+        self.composition_dict[chem_name] = int(chem_concentration_int)
         print(chem_name + " added to ingredient: " + self.name_str)
 
     def remove_chemical(self, chem_name):
@@ -37,3 +37,15 @@ class Ingredient:
         else:
             return False
 
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name_str == other.name_str
+        else:
+            return False
+
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash(self.name_str)
