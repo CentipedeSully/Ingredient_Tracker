@@ -22,6 +22,87 @@ def get_ingredient_menu_selection():
     return cleanse_input(input("Input an option: "))
 
 
+def get_ingredient_edit_selection(ingredient_collection):
+    is_editing_ingredients = True
+    current_ingredient_name = ""
+    print("Editing ingredient data ")
+
+    while is_editing_ingredients:
+        if current_ingredient_name == '':
+            print("No ingredient is currently selected")
+        else:
+            get_ingredient_from_collection(current_ingredient_name,ingredient_collection).display_analysis()
+
+        print("[1] Select ingredient to edit")
+        print("[2] Add/Update chemical")
+        print("[3] Remove chemical")
+        print("[Q] Back to Ingredient Search")
+        user_input = cleanse_input(input("Input an option: "))
+
+        match user_input:
+            case "1":
+                ingredient_name = cleanse_input(input("Input ingredient name: "))
+                if is_ingredient_in_set(ingredient_name, ingredient_collection):
+                    current_ingredient_name = ingredient_name
+                    continue
+                else:
+                    print("(Ingredient '" + ingredient_name + "' doesn't exist in the database")
+                    continue
+
+
+            case '2':
+                if current_ingredient_name == '':
+                    print("An ingredient must be specified before editing its chemical composition data")
+                    continue
+                else:
+                    chem_input = cleanse_input(input("Input (chemical_name,concentration_value) -no parenthesis: "))
+                    chem_input_list = chem_input.split()
+
+                    # cleanse input for validation
+                    for element in chem_input_list:
+                        chem_input_list[0] = cleanse_input(chem_input_list[0])
+
+                    # validate the concentration's value before internalizing the number
+                    if not is_input_integer(chem_input_list[1]):
+                        print("concentration value '" + chem_input_list[1] + "' isn't a valid integer")
+                        continue
+
+                    # get ingredient reference
+                    ingredient_reference = get_ingredient_from_collection(current_ingredient_name,ingredient_collection)
+
+                    # add/update the specified chemical:concentration pair to the ingredient reference
+                    ingredient_reference.composition_dict[chem_input_list[0]] =chem_input_list[1]
+
+                    print("Chemical '" + chem_input_list[0] + "' added to current ingredient")
+                    continue
+
+
+            case '3':
+                if current_ingredient_name == '':
+                    print("An ingredient must be specified before editing its chemical composition data")
+                    continue
+                else:
+                    chem_name = cleanse_input(input("Input chemical to remove: "))
+
+                    # get ingredient reference
+                    ingredient_reference = get_ingredient_from_collection(current_ingredient_name, ingredient_collection)
+
+                    if not chem_name in ingredient_reference.composition_dict:
+                        print("Chemical '" + chem_name + "' doesn't exist in this ingredient. Removal failed.")
+                        continue
+
+                    # remove the  specified chemical
+                    ingredient_reference.composition_dict.remove(chem_name)
+
+                    print("Chemical '" + chem_name + "' removed from current ingredient")
+                    continue
+
+
+            case 'q':
+                is_editing_ingredients = False
+                continue
+
+
 def cleanse_input(user_input):
     user_input = str(user_input).lower().strip()
     return user_input
@@ -166,9 +247,8 @@ def control_ingredient_interface(ingredients_set):
 
 
             case "5":
-                pass
                 # Edit ingredient: Add/Remove/update chemical (or back)
-
+                get_ingredient_edit_selection(ingredients_set)
 
             case "6":
                 # Remove ingredient from set
