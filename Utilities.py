@@ -31,7 +31,7 @@ def get_ingredient_edit_selection(ingredient_collection):
         if current_ingredient_name == '':
             print("No ingredient is currently selected")
         else:
-            get_ingredient_from_collection(current_ingredient_name,ingredient_collection).display_analysis()
+            get_ingredient_from_collection(current_ingredient_name, ingredient_collection).display_analysis()
 
         print("[1] Select ingredient to edit")
         print("[2] Add/Update chemical")
@@ -59,8 +59,8 @@ def get_ingredient_edit_selection(ingredient_collection):
                     chem_input_list = chem_input.split()
 
                     # cleanse input for validation
-                    for element in chem_input_list:
-                        chem_input_list[0] = cleanse_input(chem_input_list[0])
+                    for index in range(0, len(chem_input_list)):
+                        chem_input_list[index] = cleanse_input(chem_input_list[index])
 
                     # validate the concentration's value before internalizing the number
                     if not is_input_integer(chem_input_list[1]):
@@ -68,10 +68,10 @@ def get_ingredient_edit_selection(ingredient_collection):
                         continue
 
                     # get ingredient reference
-                    ingredient_reference = get_ingredient_from_collection(current_ingredient_name,ingredient_collection)
+                    ingredient_reference = get_ingredient_from_collection(current_ingredient_name, ingredient_collection)
 
                     # add/update the specified chemical:concentration pair to the ingredient reference
-                    ingredient_reference.composition_dict[chem_input_list[0]] =chem_input_list[1]
+                    ingredient_reference.composition_dict[chem_input_list[0]] = chem_input_list[1]
 
                     print("Chemical '" + chem_input_list[0] + "' added to current ingredient")
                     continue
@@ -87,7 +87,7 @@ def get_ingredient_edit_selection(ingredient_collection):
                     # get ingredient reference
                     ingredient_reference = get_ingredient_from_collection(current_ingredient_name, ingredient_collection)
 
-                    if not chem_name in ingredient_reference.composition_dict:
+                    if chem_name not in ingredient_reference.composition_dict:
                         print("Chemical '" + chem_name + "' doesn't exist in this ingredient. Removal failed.")
                         continue
 
@@ -110,7 +110,7 @@ def cleanse_input(user_input):
 
 def is_input_integer(input_str):
     try:
-        integer_value = int(input_str)
+        int(input_str)
         return True
 
     except ValueError:
@@ -183,7 +183,7 @@ def fetch_ingredients_by_chemical(ingredient_set, chem_name, min_concentration_i
         matches_sorted_by_concentration_list.__add__(largest_concentration_ingredient)
         matches_list.remove(largest_concentration_ingredient)
 
-    filter_str = "'" + chem_name + "', concentration range(" + str(min_concentration_int) + ", " + str(max_concentration_int) +")"
+    filter_str = "'" + chem_name + "', concentration range(" + str(min_concentration_int) + ", " + str(max_concentration_int) + ")"
     print("Displaying ingredients based on filter: " + filter_str)
     display_ingredient_collection(matches_sorted_by_concentration_list)
 
