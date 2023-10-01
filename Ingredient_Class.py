@@ -14,16 +14,21 @@ class Ingredient:
             print(chem_name + ' removed from ingredient: ' + self.name_str)
 
     def display_analysis(self):
-        ingredient_name = "Ingredient: " + self.name_str + '\n'
+        border = "----------------------------------------------" + '\n'
         indentation = "    "
-        composition_breakdown = "Chemical Composition:" + "\n"
+        ingredient_name = self.name_str + '\n'
+        composition_breakdown = ''
 
-        for chemical in self.composition_dict:
-            composition_breakdown += indentation
-            composition_breakdown += chemical + ": " + self.composition_dict[chemical] + "\n"
+        if len(self.composition_dict) < 1:
+            composition_breakdown += indentation + "NO DATA\n"
 
-        border = "----------------------------------------------"
-        print(ingredient_name + composition_breakdown + border)
+        else:
+            for chemical in self.composition_dict:
+                composition_breakdown += indentation
+                composition_breakdown += chemical + ": " + str(self.composition_dict[chemical]) + "\n"
+
+
+        print(border + ingredient_name + composition_breakdown + border)
 
     def does_chemical_exist(self, chem_name):
         if self.composition_dict.__contains__(chem_name):
@@ -49,3 +54,27 @@ class Ingredient:
 
     def __hash__(self):
         return hash(self.name_str)
+
+    def __lt__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name_str < other.name_str
+        else:
+            return False
+
+    def __le__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name_str <= other.name_str
+        else:
+            return False
+
+    def __gt__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name_str > other.name_str
+        else:
+            return False
+
+    def __ge__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name_str >= other.name_str
+        else:
+            return False

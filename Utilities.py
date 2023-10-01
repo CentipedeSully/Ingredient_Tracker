@@ -7,6 +7,7 @@ def get_main_menu_selection():
     print("[2] Access Ingredient Data")
     print("[Q] Close Application")
     raw_input = input('Input an option: ')
+    print('\n')
     return cleanse_input(raw_input)
 
 
@@ -19,7 +20,10 @@ def get_ingredient_menu_selection():
     print("[5] Edit Ingredient")
     print("[6] Remove Ingredient")
     print("[Q] Back to Main Menu")
-    return cleanse_input(input("Input an option: "))
+    clean_input = cleanse_input(input("Input an option: "))
+    print('\n')
+    return clean_input
+
 
 
 def get_ingredient_edit_selection(ingredient_collection):
@@ -29,15 +33,16 @@ def get_ingredient_edit_selection(ingredient_collection):
 
     while is_editing_ingredients:
         if current_ingredient_name == '':
-            print("No ingredient is currently selected")
+            print("NO INGREDIENT SELECTED")
         else:
             get_ingredient_from_collection(current_ingredient_name, ingredient_collection).display_analysis()
 
-        print("[1] Select ingredient to edit")
+        print("[1] Select ingredient")
         print("[2] Add/Update chemical")
         print("[3] Remove chemical")
-        print("[Q] Back to Ingredient Search")
+        print("[Q] Back")
         user_input = cleanse_input(input("Input an option: "))
+        print('\n')
 
         match user_input:
             case "1":
@@ -46,7 +51,7 @@ def get_ingredient_edit_selection(ingredient_collection):
                     current_ingredient_name = ingredient_name
                     continue
                 else:
-                    print("(Ingredient '" + ingredient_name + "' doesn't exist in the database")
+                    print("Ingredient '" + ingredient_name + "' doesn't exist in the database")
                     continue
 
 
@@ -56,7 +61,7 @@ def get_ingredient_edit_selection(ingredient_collection):
                     continue
                 else:
                     chem_input = cleanse_input(input("Input (chemical_name,concentration_value) -no parenthesis: "))
-                    chem_input_list = chem_input.split()
+                    chem_input_list = chem_input.split(',')
 
                     # cleanse input for validation
                     for index in range(0, len(chem_input_list)):
@@ -71,7 +76,7 @@ def get_ingredient_edit_selection(ingredient_collection):
                     ingredient_reference = get_ingredient_from_collection(current_ingredient_name, ingredient_collection)
 
                     # add/update the specified chemical:concentration pair to the ingredient reference
-                    ingredient_reference.composition_dict[chem_input_list[0]] = chem_input_list[1]
+                    ingredient_reference.composition_dict[chem_input_list[0]] = int(chem_input_list[1])
 
                     print("Chemical '" + chem_input_list[0] + "' added to current ingredient")
                     continue
@@ -92,7 +97,7 @@ def get_ingredient_edit_selection(ingredient_collection):
                         continue
 
                     # remove the  specified chemical
-                    ingredient_reference.composition_dict.remove(chem_name)
+                    ingredient_reference.composition_dict.pop(chem_name)
 
                     print("Chemical '" + chem_name + "' removed from current ingredient")
                     continue
@@ -151,7 +156,7 @@ def fetch_ingredients_by_name(ingredients_set, filter_str=''):
     matches_list = list()
     for ingredient_obj in ingredients_set:
         if filter_str in ingredient_obj.name_str:
-            matches_list.__add__(ingredient_obj)
+            matches_list.append(ingredient_obj)
 
     matches_list.sort()
     if filter_str != '':
@@ -160,13 +165,13 @@ def fetch_ingredients_by_name(ingredients_set, filter_str=''):
     display_ingredient_collection(matches_list)
 
 
-def fetch_ingredients_by_chemical(ingredient_set, chem_name, min_concentration_int=1, max_concentration_int=9):
+def fetch_ingredients_by_chemical(ingredient_set, chem_name, min_concentration_int=1, max_concentration_int=999):
     matches_list = list()
 
     for ingredient in ingredient_set:
         if chem_name in ingredient.composition_dict:
             if min_concentration_int < ingredient.composition_dict[chem_name] < max_concentration_int:
-                matches_list.__add__(ingredient)
+                matches_list.append(ingredient)
 
     matches_list.sort()     # sorted alphabetically
     matches_sorted_by_concentration_list = list()
@@ -180,7 +185,7 @@ def fetch_ingredients_by_chemical(ingredient_set, chem_name, min_concentration_i
             elif ingredient.composition_dict[chem_name] > largest_concentration_ingredient.composition_dict[chem_name]:
                 largest_concentration_ingredient = ingredient
 
-        matches_sorted_by_concentration_list.__add__(largest_concentration_ingredient)
+        matches_sorted_by_concentration_list.append(largest_concentration_ingredient)
         matches_list.remove(largest_concentration_ingredient)
 
     filter_str = "'" + chem_name + "', concentration range(" + str(min_concentration_int) + ", " + str(max_concentration_int) + ")"
@@ -232,13 +237,13 @@ def control_ingredient_interface(ingredients_set):
                         if is_input_integer(input_list[index]):
                             max_concentration = int(input_list[index])
 
-                fetch_ingredients_by_chemical(chem_name, min_concentration, max_concentration)
+                fetch_ingredients_by_chemical(ingredients_set, chem_name, min_concentration, max_concentration)
 
 
             case "4":
                 # Add ingredient to set
                 ingredient_name = cleanse_input(input("Input new ingredient name: "))
-                if ingredient_name in ingredients_set:
+                if is_ingredient_in_set(ingredient_name, ingredients_set):
                     print(ingredient_name + " already exists in database: ")
                 else:
                     new_ingredient = Ingredient_Class.Ingredient(ingredient_name)
