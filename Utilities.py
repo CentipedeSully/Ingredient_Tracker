@@ -3,8 +3,7 @@ import Ingredient_Class
 
 def get_main_menu_selection():
     print("What do you need?")
-    print("[1] Configure Save File Path")
-    print("[2] Access Ingredient Data")
+    print("[1] Access Ingredient Data")
     print("[Q] Close Application")
     raw_input = input('Input an option: ')
     print('\n')
@@ -193,13 +192,6 @@ def fetch_ingredients_by_chemical(ingredient_set, chem_name, min_concentration_i
     display_ingredient_collection(matches_sorted_by_concentration_list)
 
 
-def run_save_file_path_configuration():
-    pass
-
-
-def run_ingredient_tracking():
-    pass
-
 
 def control_ingredient_interface(ingredients_set):
     is_manipulating_ingredient_data = True
@@ -275,3 +267,5 @@ def control_ingredient_interface(ingredients_set):
                 # return to main menu
                 is_manipulating_ingredient_data = False
                 continue
+
+
