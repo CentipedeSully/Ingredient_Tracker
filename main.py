@@ -25,8 +25,8 @@ def old_main():
 def main():
     root = Tk()
     title_str = "Ingredient Tracker"
-    window_width = 920
-    window_height = 700
+    window_width = 800
+    window_height = 500
 
     window = gui_window(root, title_str, window_width, window_height)
 
