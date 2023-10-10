@@ -28,7 +28,7 @@ def main():
     window_width = 1000
     window_height = 700
 
-    window = gui_window(root, title_str, window_width, window_height)
+    window = GuiWindow(root, title_str, window_width, window_height)
 
 
 main()
