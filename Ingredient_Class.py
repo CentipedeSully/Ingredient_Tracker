@@ -13,7 +13,7 @@ class Ingredient:
             self.composition_dict.pop(chem_name)
             print(chem_name + ' removed from ingredient: ' + self.name_str)
 
-    def display_analysis(self):
+    def print_analysis(self):
         border = "----------------------------------------------" + '\n'
         indentation = "    "
         ingredient_name = self.name_str + '\n'

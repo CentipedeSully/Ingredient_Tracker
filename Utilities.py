@@ -147,7 +147,7 @@ def display_ingredient_collection(ingredient_collection):
     else:
         print("Showing '" + str(len(ingredient_collection)) + "'matches...")
         for ingredient in ingredient_collection:
-            ingredient.display_analysis()
+            ingredient.print_analysis()
         print("Completed showing matches.")
 
 
@@ -267,5 +267,3 @@ def control_ingredient_interface(ingredients_set):
                 # return to main menu
                 is_manipulating_ingredient_data = False
                 continue
-
-
