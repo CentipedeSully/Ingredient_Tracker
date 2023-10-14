@@ -21,7 +21,7 @@ class GuiWindow:
         self._input_cell_height = 5
 
         self._table_content_dict = dict()
-
+        self._ingredient_data_dict = dict()
 
         # used to keep the chemical quantites valid
         self._check_num_wrapper = (self.root.register(_check_num), "%P")
@@ -145,6 +145,9 @@ class GuiWindow:
         self._btn_dict["clear"].grid(row=7, column=6, sticky='nesw')
         self._btn_dict["submit"].grid(row=7, column=7, sticky='nesw')
 
+        self._btn_dict["clear"].bind('<Button-1>', self.clear_entries)
+        self._btn_dict["submit"].bind('<Button-1>', self.submit_query)
+
         self.enter_search_context(None)
         self.root.mainloop()
 
@@ -247,40 +250,171 @@ class GuiWindow:
             self.rebuild_chemical_entries(self._number_of_chemical_entries - 1)
 
     def clear_entries(self, event):
-        pass
+        for entry in self._ent_dict:
+            self._ent_dict[entry].delete(0, tk.END)
+
+        for entry in self._chem_entry_dict:
+            self._chem_entry_dict[entry].delete(0, tk.END)
+
+        for entry in self._min_entry_dict:
+            self._min_entry_dict[entry].delete(0, tk.END)
+
+        for entry in self._max_entry_dict:
+            self._max_entry_dict[entry].delete(0, tk.END)
 
     def submit_query(self, event):
-        pass
+        # get the ingredient name
+        name_str = self._ent_dict["ingredient"].get()
 
-    def search_entry(self, search_tuple: tuple):
-        pass
+        # get the chemical entries
+        chem_dict = dict()
+        if self._number_of_chemical_entries > 0:
+            for index in range(0, self._number_of_chemical_entries):
+                # skip blank entries
+                if self._chem_entry_dict[index].get() != '':
+                    continue
 
-    def add_entry(self, add_tuple: tuple):
-        pass
+                else:
+                    if self._context == "search":
+                        # create a tuple as a min,max range from the min/max entries
+                        # these are gauranteed to be either integer strings or blank strings
+                        # a binding on the min/max entries enforces these strings to be int compatible
 
-    def remove_entry(self, remove_tuple: tuple):
-        pass
+                        min_value = self._min_entry_dict[index].get()
+                        max_value = self._max_entry_dict[index].get()
 
+                        if min_value == '':
+                            min_value = 0
+                        else:
+                            min_value = int(min_value)
 
-    def build_ingredient_to_query(self) -> Ingredient.Ingredient:
-        # get ingredient input & create ingredient
-        ingredient_name = self._ent_dict['ingredient'].get()
+                        if max_value == '':
+                            max_value = 1000
+                        else:
+                            max_value = int(max_value)
 
-        if ingredient_name != '':
-            new_ingredient = Ingredient.Ingredient(ingredient_name)
-
-            # get chemical inputs, after validating the ingrdient input
-            if self._number_of_chemical_entries > 0:
-                for index in range(0, self._number_of_chemical_entries):
-                    chem_name = self._chem_entry_dict[index].get()
-                    chem_min_quantity = self._min_entry_dict[index].get()
-                    chem_max_quantity = self._max_entry_dict[index].get()
-
-                    if chem_name != '':
-                        pass
-                        #new_ingredient.composition_dict[chem_name]
+                        valid_min = min(min_value,max_value)
+                        valid_max = max(min_value, max_value)
+                        chem_dict[self._chem_entry_dict[index].get()] = (valid_min, valid_max)
 
 
+                    elif self._context == 'add' or self._context == "remove":
+                        # when adding to the database, we don't care about the max_value entry field
+                        # the min entry field will default to 1 if no value is given
+
+                        value = self._min_entry_dict[index].get()
+                        if value == '':
+                            value = 1
+                        chem_dict[self._chem_entry_dict[index].get()] = value
+
+        if self._context == 'search':
+            self.search_entry(name_str, chem_dict)
+        elif self._context == 'add':
+            self.add_entry(name_str, chem_dict)
+        elif self._context == 'remove':
+            self.remove_entry(name_str, chem_dict)
+
+
+    def search_entry(self, name_str: str, chem_dict: dict):
+        # chem_dict format -> key= chemical_name, value= (int, int)
+
+
+        # create mathes list for sorting later
+        ingredient_matches_list = list()
+
+
+        # enter search
+        for ingredient in self._ingredient_data_dict:
+
+            # try to search by ingredient name if a name was specified
+            if name_str != '':
+                if name_str in ingredient:
+
+                    # record the matches by name alone if no chemicals were specified
+                    if len(chem_dict) < 1:
+                        ingredient_matches_list.append(ingredient)
+
+                    else:
+                        # record the match if EVERY chemical in the chem_dict exists AND...
+                        # if each chemical's value falls within the specified range
+                        all_chemicals_match = True      # assume true until proven false
+
+                        for chemical in chem_dict:
+                            if self._ingredient_data_dict[ingredient].composition_dict.__contains__(chemical):
+                                minimum = chem_dict[chemical][0]
+                                maximum = chem_dict[chemical][1]
+
+                                if self._ingredient_data_dict[ingredient].composition_dict[chemical] not in range(minimum, maximum):
+                                    # the chemical's value isn't in the specified range. This ingredient isn't a match
+                                    all_chemicals_match = False
+                                    break
+                            else:
+                                # the speicifed chemical doesn't exist in this ingredient. It isn't a match
+                                all_chemicals_match = False
+                                break
+
+                        if all_chemicals_match:
+                            ingredient_matches_list.append(ingredient)
+
+            # If no ingredient was specified, search all ingredients for any of the specified chemicals
+            elif len(chem_dict) > 0:
+                all_chemicals_match = True  # assume true until proven false
+
+                for chemical in chem_dict:
+                    if self._ingredient_data_dict[ingredient].composition_dict.__contains__(chemical):
+                        minimum = chem_dict[chemical][0]
+                        maximum = chem_dict[chemical][1]
+
+                        if self._ingredient_data_dict[ingredient].composition_dict[chemical] not in range(minimum, maximum):
+                            # the chemical's value isn't in the specified range. This ingredient isn't a match
+                            all_chemicals_match = False
+                            break
+                    else:
+                        # the speicifed chemical doesn't exist in this ingredient. It isn't a match
+                        all_chemicals_match = False
+                        break
+
+                if all_chemicals_match:
+                    ingredient_matches_list.append(ingredient)
+
+        # Matches have been recorded, if they exist. Now sort the matches list
+        ingredient_matches_list.sort()
+
+        # populate the table display with each match
+        for ingredient in ingredient_matches_list:
+            table_entry_list = self.convert_ingredient_to_entry_list(self._ingredient_data_dict[ingredient])
+            self.populate_display_with_entries(table_entry_list)
+
+    def add_entry(self, name_str: str, chem_dict: dict):
+        # create new ingredient and add it to the database if it doesn't exist
+        if not self._ingredient_data_dict.__contains__(name_str):
+            new_ingredient = Ingredient.Ingredient(name_str)
+
+            for chemical in chem_dict:
+                new_ingredient.composition_dict[chemical] = chem_dict[chemical]
+
+            self._ingredient_data_dict[name_str] = new_ingredient
+            print("Ingredient '%s' added to database" % name_str)
+
+
+        # update the ingredient with the new chemical data. DOESN'T DELETE ANY CHEMICALS
+        else:
+            for chemical in chem_dict:
+                self._ingredient_data_dict[name_str].composition_dict[chemical] = chem_dict[chemical]
+
+            print("Ingredient '%s' updated" % name_str)
+
+    def remove_entry(self, name_str: str, chem_dict: dict):
+        if self._ingredient_data_dict.__contains__(name_str):
+            # remove the ingredient if no chemicals were specified
+            if len(chem_dict) < 1:
+                self._ingredient_data_dict.pop(name_str)
+
+            # otherwise, only remove from the database the specified chemicals from the specified ingredient
+            else:
+                for chemical in chem_dict:
+                    if self._ingredient_data_dict[name_str].composition_dict.__contains__(chemical):
+                        self._ingredient_data_dict[name_str].composition_dict.pop(chemical)
 
 
     def populate_display_with_entries(self, ingredient_entry_list: list):
