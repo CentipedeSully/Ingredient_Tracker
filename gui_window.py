@@ -367,6 +367,8 @@ class GuiWindow:
             table_entry_list = self.convert_ingredient_to_entry_list(self._ingredient_data_dict[ingredient])
             self.populate_display_with_entries(table_entry_list)
 
+        print("Search Completed. Matches found: %s" % len(ingredient_matches_list))
+
     def add_entry(self, name_str: str, chem_dict: dict):
         # create new ingredient and add it to the database if it doesn't exist
         if not self._ingredient_data_dict.__contains__(name_str):
@@ -377,7 +379,7 @@ class GuiWindow:
                 new_ingredient.composition_dict[chemical] = chem_dict[chemical]
 
             self._ingredient_data_dict[name_str] = new_ingredient
-            # print("Ingredient '%s' added to database" % name_str)
+            print("Added Ingredient '%s'" % name_str)
 
 
         # update the ingredient with the new chemical data. DOESN'T DELETE ANY CHEMICALS
@@ -385,19 +387,21 @@ class GuiWindow:
             for chemical in chem_dict:
                 self._ingredient_data_dict[name_str].composition_dict[chemical] = chem_dict[chemical]
 
-            print("Ingredient '%s' updated" % name_str)
+            print("Updated Ingredient '%s' with additional chemicals" % name_str)
 
     def remove_entry(self, name_str: str, chem_dict: dict):
         if self._ingredient_data_dict.__contains__(name_str):
             # remove the ingredient if no chemicals were specified
             if len(chem_dict) < 1:
                 self._ingredient_data_dict.pop(name_str)
+                print("Removed Ingredient '%s'" % name_str)
 
             # otherwise, only remove from the database the specified chemicals from the specified ingredient
             else:
                 for chemical in chem_dict:
                     if self._ingredient_data_dict[name_str].composition_dict.__contains__(chemical):
                         self._ingredient_data_dict[name_str].composition_dict.pop(chemical)
+                    print("Updated Ingredient '%s' by removing chemicals" % name_str)
 
 
     def clear_display(self):
