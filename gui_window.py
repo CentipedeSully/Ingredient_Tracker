@@ -271,7 +271,7 @@ class GuiWindow:
         if self._number_of_chemical_entries > 0:
             for index in range(0, self._number_of_chemical_entries):
                 # skip blank entries
-                if self._chem_entry_dict[index].get() != '':
+                if self._chem_entry_dict[index].get() == '':
                     continue
 
                 else:
@@ -307,6 +307,7 @@ class GuiWindow:
                             value = 1
                         chem_dict[self._chem_entry_dict[index].get()] = value
 
+
         if self._context == 'search':
             self.search_entry(name_str, chem_dict)
         elif self._context == 'add':
@@ -315,70 +316,51 @@ class GuiWindow:
             self.remove_entry(name_str, chem_dict)
 
 
-    def search_entry(self, name_str: str, chem_dict: dict):
+    def search_entry(self, name_str: str, query_chem_dict: dict):
         # chem_dict format -> key= chemical_name, value= (int, int)
-
 
         # create mathes list for sorting later
         ingredient_matches_list = list()
 
-
         # enter search
         for ingredient in self._ingredient_data_dict:
 
-            # try to search by ingredient name if a name was specified
-            if name_str != '':
-                if name_str in ingredient:
+            if name_str in ingredient:   # empty strings exist in all strings
 
-                    # record the matches by name alone if no chemicals were specified
-                    if len(chem_dict) < 1:
+                # record the matches by name alone if no chemicals were specified
+                if len(query_chem_dict) < 1:
+                    ingredient_matches_list.append(ingredient)
+
+                else:
+                    # only record the ingredient if it possesses a match to each chemical query
+                    chemical_matches_found_int = 0
+
+                    for query_chemical_str in query_chem_dict:
+                        query_match_found = False
+                        min_value = query_chem_dict[query_chemical_str][0]
+                        max_value = query_chem_dict[query_chemical_str][1]
+
+                        # find any occurances of the query within the keys of each ingredient's chem_dictionary
+                        for found_chemical_str in self._ingredient_data_dict[ingredient].composition_dict.keys():
+                            if query_chemical_str in found_chemical_str:
+                                if min_value <= int(self._ingredient_data_dict[ingredient].composition_dict[found_chemical_str]) <= max_value:
+                                    query_match_found = True
+                                    break
+
+                        # if this single query was found, then increment the number of chem matches
+                        if query_match_found:
+                            chemical_matches_found_int += 1
+
+                    # if we've found a match for each chemical query in this ingredient, then add this ingredient
+                    if chemical_matches_found_int == len(query_chem_dict):
                         ingredient_matches_list.append(ingredient)
 
-                    else:
-                        # record the match if EVERY chemical in the chem_dict exists AND...
-                        # if each chemical's value falls within the specified range
-                        all_chemicals_match = True      # assume true until proven false
-
-                        for chemical in chem_dict:
-                            if self._ingredient_data_dict[ingredient].composition_dict.__contains__(chemical):
-                                minimum = chem_dict[chemical][0]
-                                maximum = chem_dict[chemical][1]
-
-                                if self._ingredient_data_dict[ingredient].composition_dict[chemical] not in range(minimum, maximum):
-                                    # the chemical's value isn't in the specified range. This ingredient isn't a match
-                                    all_chemicals_match = False
-                                    break
-                            else:
-                                # the speicifed chemical doesn't exist in this ingredient. It isn't a match
-                                all_chemicals_match = False
-                                break
-
-                        if all_chemicals_match:
-                            ingredient_matches_list.append(ingredient)
-
-            # If no ingredient was specified, search all ingredients for any of the specified chemicals
-            elif len(chem_dict) > 0:
-                all_chemicals_match = True  # assume true until proven false
-
-                for chemical in chem_dict:
-                    if self._ingredient_data_dict[ingredient].composition_dict.__contains__(chemical):
-                        minimum = chem_dict[chemical][0]
-                        maximum = chem_dict[chemical][1]
-
-                        if self._ingredient_data_dict[ingredient].composition_dict[chemical] not in range(minimum, maximum):
-                            # the chemical's value isn't in the specified range. This ingredient isn't a match
-                            all_chemicals_match = False
-                            break
-                    else:
-                        # the speicifed chemical doesn't exist in this ingredient. It isn't a match
-                        all_chemicals_match = False
-                        break
-
-                if all_chemicals_match:
-                    ingredient_matches_list.append(ingredient)
 
         # Matches have been recorded, if they exist. Now sort the matches list
         ingredient_matches_list.sort()
+
+        # clear the table display before adding the new matches
+        self.clear_display()
 
         # populate the table display with each match
         for ingredient in ingredient_matches_list:
@@ -391,10 +373,11 @@ class GuiWindow:
             new_ingredient = Ingredient.Ingredient(name_str)
 
             for chemical in chem_dict:
+                # print('Building new ingredient chemical data. New chemical: %s' % chemical)
                 new_ingredient.composition_dict[chemical] = chem_dict[chemical]
 
             self._ingredient_data_dict[name_str] = new_ingredient
-            print("Ingredient '%s' added to database" % name_str)
+            # print("Ingredient '%s' added to database" % name_str)
 
 
         # update the ingredient with the new chemical data. DOESN'T DELETE ANY CHEMICALS
@@ -417,28 +400,39 @@ class GuiWindow:
                         self._ingredient_data_dict[name_str].composition_dict.pop(chemical)
 
 
+    def clear_display(self):
+        if len(self._table_content_dict) > 0:
+            for ingredient_entry in self._table_content_dict:
+                self._treeview_table.delete(ingredient_entry)
+
+            self._table_content_dict.clear()
+
     def populate_display_with_entries(self, ingredient_entry_list: list):
         # entry format -> First element: (ingredient name, [empty string], [empty string])
         #                 Next elemnt:   ([empty string], chem name, chem quantity)
         #                 Next elemnts:  ([empty string], chem name, chem quantity)
         #                 ...
 
-        # insert ingredient name first
-        table_id = ingredient_entry_list[0]
-        self._treeview_table.insert(parent='', index=tk.END, id=table_id, values=ingredient_entry_list[0])
 
-        # keep a record of this ingredient's table id and list of chemical ids
+
+        # setup first element special condition & setup list of id's
+        is_at_first_element = True
+        ingredient_name = ''
         chem_id_list = list()
-        self._table_content_dict[table_id] = chem_id_list
 
-
-        # insert next entries as children of the first
-        if len(ingredient_entry_list) > 1:
-            for index in range(1, len(ingredient_entry_list)):
-                chemical_name = ingredient_entry_list[index][1]     # ('', CHEM_NAME, quantity)
-                self._treeview_table.insert(parent=table_id, index=tk.END, id=chemical_name, values= ingredient_entry_list[index])
+        for item in ingredient_entry_list:
+            if is_at_first_element:
+                is_at_first_element = False
+                ingredient_name = item[0]
+                print(ingredient_name)
+                self._treeview_table.insert(parent='', index=tk.END, iid=ingredient_name, values=item)
+            else:
+                chemical_name = item[1]
+                print(chemical_name)
+                self._treeview_table.insert(parent=ingredient_name, index=tk.END, iid=chemical_name, values=item)
                 chem_id_list.append(chemical_name)
 
+        self._table_content_dict[ingredient_name] = chem_id_list
 
 
     @staticmethod
@@ -458,6 +452,7 @@ class GuiWindow:
         else:
             # collect the names for sorting
             for chemical in ingredient.composition_dict:
+                print("Building entry list: chemical: " + str(chemical))
                 chem_names_list.append(chemical)
             chem_names_list.sort()
 
