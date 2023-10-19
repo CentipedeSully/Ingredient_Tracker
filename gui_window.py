@@ -15,7 +15,8 @@ class GuiWindow:
 
         self.root.title(title_str)
 
-        self._number_of_chemical_entries = 3
+        self._number_of_chemical_entries = 0
+        self._starting_chemical_entries = 3
         self._max_number_of_chemicals = 16
         self._input_cell_width = 5
         self._input_cell_height = 5
@@ -27,7 +28,6 @@ class GuiWindow:
         self._check_num_wrapper = (self.root.register(_check_num), "%P")
         self._quantity_min_variable_list = list()
         self._quantity_max_variable_list = list()
-
 
         # HEADER AND BODY: create & configure
         self._frame_dict = dict()
@@ -42,8 +42,6 @@ class GuiWindow:
 
         self._frame_dict['body'].columnconfigure(index=1, weight=1)
         self._frame_dict['body'].rowconfigure(index=[1, 2, 3], weight=1)
-
-
 
         # INPUT AND DISPLAY: create & configure
         self._frame_dict['input'] = ttk.Frame(master=self._frame_dict['body'], width=100, height=100, borderwidth=10)
@@ -68,8 +66,6 @@ class GuiWindow:
         # 6: Add/Remove entry Buttons
         # 7: Clear/Submit buttons
 
-
-
         # DISPLAY CONTENTS:
         self._columns = ('ingredient', 'chemical', 'quantity')
         self._treeview_table = ttk.Treeview(master=self._frame_dict['table'], columns=self._columns, show='headings')
@@ -82,7 +78,6 @@ class GuiWindow:
         self._treeview_table.column('quantity', width=50, stretch=tk.NO, anchor='e')
 
         self._treeview_table.grid(row=0, column=0, sticky='nesw')
-
 
         # INPUT CONTENTS:
         self._context = "no context selected"
@@ -126,7 +121,8 @@ class GuiWindow:
         self._frame_dict['chemical_inputs'].columnconfigure(index=self._input_column_indexes, weight=1,
                                                             minsize=self._input_cell_width)
         self._frame_dict['chemical_inputs'].grid(row=5, column=0, columnspan=8, sticky='nesw')
-        self.rebuild_chemical_entries(self._number_of_chemical_entries)
+        for row in range(0, self._starting_chemical_entries):
+            self.create_chemical_entry()
 
         # edit chemical entries buttons
         self._btn_dict["increase_capacity"] = ttk.Button(master=self._frame_dict['input'], text='+')
@@ -150,7 +146,6 @@ class GuiWindow:
 
         self.enter_search_context(None)
         self.root.mainloop()
-
 
     def enter_search_context(self, event):
         if self._context != 'search':
@@ -204,7 +199,6 @@ class GuiWindow:
             self._quantity_min_variable_list.clear()
             self._quantity_max_variable_list.clear()
 
-
         # reconfigure chem entry frame
         if number_of_desired_entries > 1:
             index_list = list(range(0, number_of_desired_entries))
@@ -220,18 +214,16 @@ class GuiWindow:
             self._quantity_max_variable_list.append(tk.StringVar())
 
             self._min_entry_dict[row] = ttk.Entry(master=self._frame_dict['chemical_inputs'], width=5,
-                                                  textvariable= self._quantity_min_variable_list[row],
-                                                  validate='key', validatecommand= self._check_num_wrapper)
+                                                  textvariable=self._quantity_min_variable_list[row],
+                                                  validate='key', validatecommand=self._check_num_wrapper)
 
             self._max_entry_dict[row] = ttk.Entry(master=self._frame_dict['chemical_inputs'], width=5,
-                                                  textvariable= self._quantity_max_variable_list[row],
-                                                  validate='key', validatecommand= self._check_num_wrapper)
-
-
+                                                  textvariable=self._quantity_max_variable_list[row],
+                                                  validate='key', validatecommand=self._check_num_wrapper)
 
             self._chem_entry_dict[row].grid(row=row, column=0, columnspan=6, sticky='nesw')
-            self._min_entry_dict[row].grid(row=row, column=6, sticky='nesw')
-            self._max_entry_dict[row].grid(row=row, column=7, sticky='nesw')
+            self._min_entry_dict[row].grid(row=row, column=6, sticky='ew')
+            self._max_entry_dict[row].grid(row=row, column=7, sticky='ew')
 
             if self._context == "search":
                 self._max_entry_dict[row]['state'] = '!disabled'
@@ -243,11 +235,70 @@ class GuiWindow:
 
     def increment_chemical_entries(self, event):
         if self._number_of_chemical_entries < self._max_number_of_chemicals:
-            self.rebuild_chemical_entries(self._number_of_chemical_entries + 1)
+            self.create_chemical_entry()
 
     def decrement_chemical_entries(self, event):
         if self._number_of_chemical_entries > 0:
-            self.rebuild_chemical_entries(self._number_of_chemical_entries - 1)
+            self.remove_chemical_entry()
+
+    def create_chemical_entry(self):
+        # calculate new row index
+        row = self._number_of_chemical_entries
+        print("Creating row %s of chemcial entries..." % row)
+
+        # configure grid
+        self._frame_dict['chemical_inputs'].rowconfigure(index=row, weight=1, minsize=self._input_cell_width)
+
+        # create new input validation variables
+        self._quantity_min_variable_list.append(tk.StringVar())
+        self._quantity_max_variable_list.append(tk.StringVar())
+
+        # create new entries
+        self._chem_entry_dict[row] = ttk.Entry(master=self._frame_dict['chemical_inputs'])
+        self._min_entry_dict[row] = ttk.Entry(master=self._frame_dict['chemical_inputs'], width=5,
+                                              textvariable=self._quantity_min_variable_list[row],
+                                              validate='key', validatecommand=self._check_num_wrapper)
+        self._max_entry_dict[row] = ttk.Entry(master=self._frame_dict['chemical_inputs'], width=5,
+                                              textvariable=self._quantity_max_variable_list[row],
+                                              validate='key', validatecommand=self._check_num_wrapper)
+
+        # grid the entries
+        self._chem_entry_dict[row].grid(row=row, column=0, columnspan=6, sticky='ew')
+        self._min_entry_dict[row].grid(row=row, column=6, sticky='ew')
+        self._max_entry_dict[row].grid(row=row, column=7, sticky='ew')
+
+        # reflect context selection
+        if self._context == "search":
+            self._max_entry_dict[row]['state'] = '!disabled'
+        else:
+            self._max_entry_dict[row]['state'] = 'disabled'
+
+        # update number of chemical entries
+        self._number_of_chemical_entries += 1
+
+    def remove_chemical_entry(self):
+        if self._number_of_chemical_entries > 0:
+
+            # calculate row
+            row = self._number_of_chemical_entries - 1
+            print("Removing row %s of chemcial entries..." % row)
+
+            # remove & delete latest entries
+            self._chem_entry_dict[row].grid_forget()
+            self._min_entry_dict[row].grid_forget()
+            self._max_entry_dict[row].grid_forget()
+
+            del (self._chem_entry_dict[row])
+            del (self._min_entry_dict[row])
+            del (self._max_entry_dict[row])
+
+            # remove input validation variables
+            self._quantity_min_variable_list.pop(row)
+            self._quantity_max_variable_list.pop(row)
+
+            # update number of chemical entries
+            self._number_of_chemical_entries -= 1
+
 
     def clear_entries(self, event):
         for entry in self._ent_dict:
@@ -293,7 +344,7 @@ class GuiWindow:
                         else:
                             max_value = int(max_value)
 
-                        valid_min = min(min_value,max_value)
+                        valid_min = min(min_value, max_value)
                         valid_max = max(min_value, max_value)
                         chem_dict[self._chem_entry_dict[index].get()] = (valid_min, valid_max)
 
@@ -307,14 +358,12 @@ class GuiWindow:
                             value = 1
                         chem_dict[self._chem_entry_dict[index].get()] = value
 
-
         if self._context == 'search':
             self.search_entry(name_str, chem_dict)
         elif self._context == 'add':
             self.add_entry(name_str, chem_dict)
         elif self._context == 'remove':
             self.remove_entry(name_str, chem_dict)
-
 
     def search_entry(self, name_str: str, query_chem_dict: dict):
         # chem_dict format -> key= chemical_name, value= (int, int)
@@ -325,7 +374,7 @@ class GuiWindow:
         # enter search
         for ingredient in self._ingredient_data_dict:
 
-            if name_str in ingredient:   # empty strings exist in all strings
+            if name_str in ingredient:  # empty strings exist in all strings
 
                 # record the matches by name alone if no chemicals were specified
                 if len(query_chem_dict) < 1:
@@ -343,7 +392,8 @@ class GuiWindow:
                         # find any occurances of the query within the keys of each ingredient's chem_dictionary
                         for found_chemical_str in self._ingredient_data_dict[ingredient].composition_dict.keys():
                             if query_chemical_str in found_chemical_str:
-                                if min_value <= int(self._ingredient_data_dict[ingredient].composition_dict[found_chemical_str]) <= max_value:
+                                if min_value <= int(self._ingredient_data_dict[ingredient].composition_dict[
+                                                        found_chemical_str]) <= max_value:
                                     query_match_found = True
                                     break
 
@@ -354,7 +404,6 @@ class GuiWindow:
                     # if we've found a match for each chemical query in this ingredient, then add this ingredient
                     if chemical_matches_found_int == len(query_chem_dict):
                         ingredient_matches_list.append(ingredient)
-
 
         # Matches have been recorded, if they exist. Now sort the matches list
         ingredient_matches_list.sort()
@@ -403,7 +452,6 @@ class GuiWindow:
                         self._ingredient_data_dict[name_str].composition_dict.pop(chemical)
                     print("Updated Ingredient '%s' by removing chemicals" % name_str)
 
-
     def clear_display(self):
         if len(self._table_content_dict) > 0:
             for ingredient_entry in self._table_content_dict:
@@ -417,8 +465,6 @@ class GuiWindow:
         #                 Next elemnts:  ([empty string], chem name, chem quantity)
         #                 ...
 
-
-
         # setup first element special condition & setup list of id's
         is_at_first_element = True
         ingredient_name = ''
@@ -428,16 +474,14 @@ class GuiWindow:
             if is_at_first_element:
                 is_at_first_element = False
                 ingredient_name = item[0]
-                print(ingredient_name)
-                self._treeview_table.insert(parent='', index=tk.END, iid=ingredient_name, values=item)
+                # print(ingredient_name)
+                self._treeview_table.insert(parent='', index=tk.END, iid=ingredient_name, values=item, open=True)
             else:
                 chemical_name = item[1]
-                print(chemical_name)
-                self._treeview_table.insert(parent=ingredient_name, index=tk.END, iid=chemical_name, values=item)
-                chem_id_list.append(chemical_name)
+                # print(chemical_name)
+                chem_id_list.append(self._treeview_table.insert(parent=ingredient_name, index=tk.END, values=item))
 
         self._table_content_dict[ingredient_name] = chem_id_list
-
 
     @staticmethod
     def convert_ingredient_to_entry_list(ingredient: Ingredient.Ingredient) -> list:
@@ -468,4 +512,3 @@ class GuiWindow:
 
 def _check_num(newval):
     return re.match('^[0-9]*$', newval) is not None and len(newval) <= 3
-
