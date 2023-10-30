@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 import Ingredient_Class as Ingredient
 import re
+import csv
 
 
 # noinspection PyTypeChecker,PyUnusedLocal,SpellCheckingInspection
@@ -23,6 +24,9 @@ class GuiWindow:
 
         self._table_content_dict = dict()
         self._ingredient_data_dict = dict()
+
+        self._save_file_path_str = r"C:\Users\Sulli\OneDrive\Desktop\\"
+        self._filename_str = 'test csv file'
 
         # used to keep the chemical quantites valid
         self._check_num_wrapper = (self.root.register(_check_num), "%P")
@@ -144,8 +148,21 @@ class GuiWindow:
         self._btn_dict["clear"].bind('<Button-1>', self.clear_entries)
         self._btn_dict["submit"].bind('<Button-1>', self.submit_query)
 
+        # file handling buttons
+        self._btn_dict["save_file"] = ttk.Button(master=self._frame_dict['input'], text='save')
+        self._btn_dict["save_file"].grid(row=7, column=0, sticky='nesw')
+        self._btn_dict["save_file"].bind("<Button-1>", self.save_file)
+
+        self._btn_dict["import_file"] = ttk.Button(master=self._frame_dict['input'], text='import')
+        self._btn_dict["import_file"].grid(row=7, column=1, sticky='nesw')
+        self._btn_dict["import_file"].bind("<Button-1>", self.save_file)
+
+
+
         self.enter_search_context(None)
         self.root.mainloop()
+
+
 
     def enter_search_context(self, event):
         if self._context != 'search':
@@ -299,6 +316,9 @@ class GuiWindow:
             # update number of chemical entries
             self._number_of_chemical_entries -= 1
 
+    def save_file(self, event):
+        self.write_ingredient_file(self._filename_str,
+                                   self._save_file_path_str)
 
     def clear_entries(self, event):
         for entry in self._ent_dict:
@@ -419,24 +439,26 @@ class GuiWindow:
         print("Search Completed. Matches found: %s" % len(ingredient_matches_list))
 
     def add_entry(self, name_str: str, chem_dict: dict):
-        # create new ingredient and add it to the database if it doesn't exist
-        if not self._ingredient_data_dict.__contains__(name_str):
-            new_ingredient = Ingredient.Ingredient(name_str)
+        if name_str != '':
+            # create new ingredient and add it to the database if it doesn't exist
+            if not self._ingredient_data_dict.__contains__(name_str):
+                new_ingredient = Ingredient.Ingredient(name_str)
 
-            for chemical in chem_dict:
-                # print('Building new ingredient chemical data. New chemical: %s' % chemical)
-                new_ingredient.composition_dict[chemical] = chem_dict[chemical]
+                for chemical in chem_dict:
+                    # print('Building new ingredient chemical data. New chemical: %s' % chemical)
+                    new_ingredient.composition_dict[chemical] = chem_dict[chemical]
 
-            self._ingredient_data_dict[name_str] = new_ingredient
-            print("Added Ingredient '%s'" % name_str)
+                self._ingredient_data_dict[name_str] = new_ingredient
+                print("Added Ingredient '%s'" % name_str)
+                print("Ingredients in table: %s" % len(self._ingredient_data_dict))
 
 
-        # update the ingredient with the new chemical data. DOESN'T DELETE ANY CHEMICALS
-        else:
-            for chemical in chem_dict:
-                self._ingredient_data_dict[name_str].composition_dict[chemical] = chem_dict[chemical]
+            # update the ingredient with the new chemical data. DOESN'T DELETE ANY CHEMICALS
+            else:
+                for chemical in chem_dict:
+                    self._ingredient_data_dict[name_str].composition_dict[chemical] = chem_dict[chemical]
 
-            print("Updated Ingredient '%s' with additional chemicals" % name_str)
+                print("Updated Ingredient '%s' with additional chemicals" % name_str)
 
     def remove_entry(self, name_str: str, chem_dict: dict):
         if self._ingredient_data_dict.__contains__(name_str):
@@ -483,6 +505,10 @@ class GuiWindow:
 
         self._table_content_dict[ingredient_name] = chem_id_list
 
+    @property
+    def get_ingredient_data(self) -> dict:
+        return self._ingredient_data_dict
+
     @staticmethod
     def convert_ingredient_to_entry_list(ingredient: Ingredient.Ingredient) -> list:
         # format -> (ingredient name, [nothing]    , [nothing]     )
@@ -508,6 +534,24 @@ class GuiWindow:
             for chemical in chem_names_list:
                 entry_list.append(('', chemical, ingredient.composition_dict[chemical]))
             return entry_list
+
+    def write_ingredient_file(self, filename: str, directory_path: str):
+        print("Writing new data file...")
+        print("# of ingredients to write: %s" % len(self._ingredient_data_dict))
+
+        ingredient_file = open(directory_path + filename + ".csv", "wt")
+        csv_writer = csv.writer(ingredient_file)
+        header_list = ["Ingredient", "Chemical", "Value"]
+        body_lines_list = list()
+        for key in self._ingredient_data_dict:
+            for chemical in self._ingredient_data_dict[key].composition_dict:
+                print('[%s, %s, %s]' % (str(key), str(chemical), str(self._ingredient_data_dict[key].composition_dict[chemical])))
+                line_list = [str(key), str(chemical), str(self._ingredient_data_dict[key].composition_dict[chemical])]
+                body_lines_list.append(line_list)
+
+        csv_writer.writerow(header_list)
+        csv_writer.writerows(body_lines_list)
+        ingredient_file.close()
 
 
 def _check_num(newval):

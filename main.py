@@ -7,7 +7,6 @@ def main():
     title_str = "Ingredient Tracker"
     window_width = 1000
     window_height = 700
-
     window = GuiWindow(root, title_str, window_width, window_height)
 
 
