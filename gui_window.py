@@ -26,7 +26,20 @@ class GuiWindow:
         self._table_content_dict = dict()
         self._ingredient_data_dict = dict()
 
-        # self._save_file_path_str = r"C:\Users\Sulli\OneDrive\Desktop\"
+        # create header menu and menu items
+        self._menubar = tk.Menu(self.root, bg='grey')
+        self.root.config(menu=self._menubar)
+
+        self._menu_dict = dict()
+        self._menu_dict['file'] = tk.Menu(self._menubar, tearoff=False)
+        self._menu_dict['file'].add_command(label="New", command=self.clear_database)
+        self._menu_dict['file'].add_command(label="Import CSV", command=self.read_ingredient_file)
+        self._menu_dict['file'].add_command(label="Export CSV", command=self.write_ingredient_file)
+
+        self._menubar.add_cascade(label= "File", menu= self._menu_dict['file'])
+
+
+        # persistent filepath
         self._filename_str = ''
         self._file_path_str = ''
 
@@ -35,15 +48,10 @@ class GuiWindow:
         self._quantity_min_variable_list = list()
         self._quantity_max_variable_list = list()
 
-        # HEADER AND BODY: create & configure
+        # BODY: create & configure
         self._frame_dict = dict()
-        self._frame_dict['header'] = tk.Frame(master=self.root, bg="grey",
-                                              width=window_width, height=27)
-
-        self._frame_dict['body'] = tk.Frame(master=self.root, bd=10, bg="white",
+        self._frame_dict['body'] = tk.Frame(master=self.root, bd=10, bg="grey",
                                             width=window_width, height=window_height - 27)
-
-        self._frame_dict['header'].pack(fill=tk.X)
         self._frame_dict['body'].pack(fill=tk.BOTH, expand=True)
 
         self._frame_dict['body'].columnconfigure(index=1, weight=1)
@@ -149,16 +157,6 @@ class GuiWindow:
 
         self._btn_dict["clear"].bind('<Button-1>', self.clear_entries)
         self._btn_dict["submit"].bind('<Button-1>', self.submit_query)
-
-        # file handling buttons
-        self._btn_dict["save_file"] = ttk.Button(master=self._frame_dict['input'], text='save')
-        self._btn_dict["save_file"].grid(row=7, column=0, sticky='nesw')
-        self._btn_dict["save_file"].bind("<Button-1>", self.export_file)
-
-        self._btn_dict["import_file"] = ttk.Button(master=self._frame_dict['input'], text='import')
-        self._btn_dict["import_file"].grid(row=7, column=1, sticky='nesw')
-        self._btn_dict["import_file"].bind("<Button-1>", self.import_file)
-
 
 
         self.enter_search_context(None)
@@ -560,7 +558,6 @@ class GuiWindow:
             csv_writer.writerows(body_lines_list)
             ingredient_file.close()
 
-
     def read_ingredient_file(self):
         self._file_path_str = tk.filedialog.askopenfilename(defaultextension='.csv')
         if self._file_path_str != '':
@@ -610,6 +607,9 @@ class GuiWindow:
 
             file.close()
 
+    def clear_database(self):
+        self._ingredient_data_dict.clear()
+        self.clear_display()
 
 def _check_num(newval):
     return re.match('^[0-9]*$', newval) is not None and len(newval) <= 3
