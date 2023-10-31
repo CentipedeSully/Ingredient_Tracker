@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog
 import Ingredient_Class as Ingredient
 import re
 import csv
@@ -25,8 +26,9 @@ class GuiWindow:
         self._table_content_dict = dict()
         self._ingredient_data_dict = dict()
 
-        self._save_file_path_str = r"C:\Users\Sulli\OneDrive\Desktop\\"
-        self._filename_str = 'test csv file'
+        # self._save_file_path_str = r"C:\Users\Sulli\OneDrive\Desktop\"
+        self._filename_str = ''
+        self._file_path_str = ''
 
         # used to keep the chemical quantites valid
         self._check_num_wrapper = (self.root.register(_check_num), "%P")
@@ -151,11 +153,11 @@ class GuiWindow:
         # file handling buttons
         self._btn_dict["save_file"] = ttk.Button(master=self._frame_dict['input'], text='save')
         self._btn_dict["save_file"].grid(row=7, column=0, sticky='nesw')
-        self._btn_dict["save_file"].bind("<Button-1>", self.save_file)
+        self._btn_dict["save_file"].bind("<Button-1>", self.export_file)
 
         self._btn_dict["import_file"] = ttk.Button(master=self._frame_dict['input'], text='import')
         self._btn_dict["import_file"].grid(row=7, column=1, sticky='nesw')
-        self._btn_dict["import_file"].bind("<Button-1>", self.save_file)
+        self._btn_dict["import_file"].bind("<Button-1>", self.import_file)
 
 
 
@@ -316,9 +318,11 @@ class GuiWindow:
             # update number of chemical entries
             self._number_of_chemical_entries -= 1
 
-    def save_file(self, event):
-        self.write_ingredient_file(self._filename_str,
-                                   self._save_file_path_str)
+    def export_file(self, event):
+        self.write_ingredient_file()
+
+    def import_file(self, event):
+        self.read_ingredient_file()
 
     def clear_entries(self, event):
         for entry in self._ent_dict:
@@ -535,23 +539,76 @@ class GuiWindow:
                 entry_list.append(('', chemical, ingredient.composition_dict[chemical]))
             return entry_list
 
-    def write_ingredient_file(self, filename: str, directory_path: str):
-        print("Writing new data file...")
-        print("# of ingredients to write: %s" % len(self._ingredient_data_dict))
+    def write_ingredient_file(self):
+        filetypes_tpl = ('Comma separated value', '.csv',)
+        self._file_path_str = tk.filedialog.asksaveasfilename(defaultextension='.csv')
+        if self._file_path_str != '':
+            print("Writing new data file...")
+            print("# of ingredients to write: %s" % len(self._ingredient_data_dict))
 
-        ingredient_file = open(directory_path + filename + ".csv", "wt")
-        csv_writer = csv.writer(ingredient_file)
-        header_list = ["Ingredient", "Chemical", "Value"]
-        body_lines_list = list()
-        for key in self._ingredient_data_dict:
-            for chemical in self._ingredient_data_dict[key].composition_dict:
-                print('[%s, %s, %s]' % (str(key), str(chemical), str(self._ingredient_data_dict[key].composition_dict[chemical])))
-                line_list = [str(key), str(chemical), str(self._ingredient_data_dict[key].composition_dict[chemical])]
-                body_lines_list.append(line_list)
+            ingredient_file = open(self._file_path_str, "wt")
+            csv_writer = csv.writer(ingredient_file)
+            header_list = ["Ingredient", "Chemical", "Value"]
+            body_lines_list = list()
+            for key in self._ingredient_data_dict:
+                for chemical in self._ingredient_data_dict[key].composition_dict:
+                    print('[%s, %s, %s]' % (str(key), str(chemical), str(self._ingredient_data_dict[key].composition_dict[chemical])))
+                    line_list = [str(key), str(chemical), str(self._ingredient_data_dict[key].composition_dict[chemical])]
+                    body_lines_list.append(line_list)
 
-        csv_writer.writerow(header_list)
-        csv_writer.writerows(body_lines_list)
-        ingredient_file.close()
+            csv_writer.writerow(header_list)
+            csv_writer.writerows(body_lines_list)
+            ingredient_file.close()
+
+
+    def read_ingredient_file(self):
+        self._file_path_str = tk.filedialog.askopenfilename(defaultextension='.csv')
+        if self._file_path_str != '':
+            print("Importing file from path '%s' ..." % self._file_path_str)
+            file = open(self._file_path_str, newline='')
+            csv_reader = csv.reader(file)
+            header_list = csv_reader.__next__()
+            print("Header contents: %s" % header_list)
+
+            if len(header_list) == 3:
+                if header_list[0].lower() == "ingredient" and header_list[1].lower() == "chemical" and header_list[2].lower() == "value":
+                    ingredient_records_list = list()
+                    for row in csv_reader:
+                        # watch for the stop iteration exception
+                        try:
+                            row = csv_reader.__next__()
+
+                            # Make sure there aren't any empty values
+                            row = list(filter(None, row))
+
+                            # Validate the # of rows. Ignore this row if there aren't 3 columns
+                            if len(row) != 3:
+                                continue
+
+                            # lastly, make sure the 3rd column is an integer, and clamp it between (1, 999)
+                            try:
+                                row[2] = int(row[2])
+
+                                if row[2] < 1:
+                                    row[2] = 1
+
+                                elif row[2] > 999:
+                                    row[2] = 999
+
+                            except ValueError:
+                                continue
+
+                            # Add the ingredient to the ingredient dictionary if it doesn't exist
+                            if row[0] not in self._ingredient_data_dict:
+                                new_ingredient = Ingredient.Ingredient(row[0])
+                                self._ingredient_data_dict[row[0]] = new_ingredient
+
+                            # Add the chemical and value to the existing ingredient
+                            self._ingredient_data_dict[row[0]].composition_dict[row[1]] = row[2]
+                        except StopIteration:
+                            break
+
+            file.close()
 
 
 def _check_num(newval):
