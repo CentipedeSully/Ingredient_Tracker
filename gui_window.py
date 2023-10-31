@@ -1,9 +1,11 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
+from tkinter import scrolledtext
 import Ingredient_Class as Ingredient
 import re
 import csv
+
 
 
 # noinspection PyTypeChecker,PyUnusedLocal,SpellCheckingInspection
@@ -51,18 +53,20 @@ class GuiWindow:
         # BODY: create & configure
         self._frame_dict = dict()
         self._frame_dict['body'] = tk.Frame(master=self.root, bd=10, bg="grey",
-                                            width=window_width, height=window_height - 27)
+                                            width=window_width, height=window_height)
         self._frame_dict['body'].pack(fill=tk.BOTH, expand=True)
 
-        self._frame_dict['body'].columnconfigure(index=1, weight=1)
-        self._frame_dict['body'].rowconfigure(index=[1, 2, 3], weight=1)
+        self._frame_dict['body'].columnconfigure(index=[0, 1], weight=1)
+        self._frame_dict['body'].rowconfigure(index=[0, 1], weight=1)
 
-        # INPUT AND DISPLAY: create & configure
+        # INPUT AND DISPLAY AND LOGGER: create & configure
         self._frame_dict['input'] = ttk.Frame(master=self._frame_dict['body'], width=100, height=100, borderwidth=10)
         self._frame_dict['table'] = ttk.Frame(master=self._frame_dict['body'], width=10, height=10)
+        self._frame_dict['logger'] = ttk.Frame(master=self._frame_dict['body'], width=10, height=10)
 
-        self._frame_dict['input'].grid(row=1, column=0, sticky='nw')
-        self._frame_dict['table'].grid(row=0, rowspan=3, column=1, sticky='news')
+        self._frame_dict['input'].grid(row=0, rowspan=2, column=0, sticky='nw')
+        self._frame_dict['table'].grid(row=0, column=1, sticky='news')
+        self._frame_dict['logger'].grid(row=1, column=1, sticky='news')
 
         self._input_row_indexes = list(range(0, 8))
         self._input_column_indexes = list(range(0, 9))
@@ -159,6 +163,13 @@ class GuiWindow:
         self._btn_dict["submit"].bind('<Button-1>', self.submit_query)
 
 
+        # Logger Contents
+        self._text_log = tk.scrolledtext.ScrolledText(master=self._frame_dict['body'], state='disabled', height=15, width=45)
+        self._text_log.grid(row=1,column=1, sticky='nesw')
+
+
+
+        # Run application
         self.enter_search_context(None)
         self.root.mainloop()
 
@@ -438,7 +449,7 @@ class GuiWindow:
             table_entry_list = self.convert_ingredient_to_entry_list(self._ingredient_data_dict[ingredient])
             self.populate_display_with_entries(table_entry_list)
 
-        print("Search Completed. Matches found: %s" % len(ingredient_matches_list))
+        self.log_action("Search Completed. Matches found: %s" % len(ingredient_matches_list))
 
     def add_entry(self, name_str: str, chem_dict: dict):
         if name_str != '':
@@ -451,8 +462,8 @@ class GuiWindow:
                     new_ingredient.composition_dict[chemical] = chem_dict[chemical]
 
                 self._ingredient_data_dict[name_str] = new_ingredient
-                print("Added Ingredient '%s'" % name_str)
-                print("Ingredients in table: %s" % len(self._ingredient_data_dict))
+                self.log_action("Added Ingredient '%s'" % name_str)
+                self.log_action("Ingredients in table: %s" % len(self._ingredient_data_dict))
 
 
             # update the ingredient with the new chemical data. DOESN'T DELETE ANY CHEMICALS
@@ -460,21 +471,21 @@ class GuiWindow:
                 for chemical in chem_dict:
                     self._ingredient_data_dict[name_str].composition_dict[chemical] = chem_dict[chemical]
 
-                print("Updated Ingredient '%s' with additional chemicals" % name_str)
+                self.log_action("Updated Ingredient '%s' with additional chemicals" % name_str)
 
     def remove_entry(self, name_str: str, chem_dict: dict):
         if self._ingredient_data_dict.__contains__(name_str):
             # remove the ingredient if no chemicals were specified
             if len(chem_dict) < 1:
                 self._ingredient_data_dict.pop(name_str)
-                print("Removed Ingredient '%s'" % name_str)
+                self.log_action("Removed Ingredient '%s'" % name_str)
 
             # otherwise, only remove from the database the specified chemicals from the specified ingredient
             else:
                 for chemical in chem_dict:
                     if self._ingredient_data_dict[name_str].composition_dict.__contains__(chemical):
                         self._ingredient_data_dict[name_str].composition_dict.pop(chemical)
-                    print("Updated Ingredient '%s' by removing chemicals" % name_str)
+                    self.log_action("Updated Ingredient '%s' by removing chemicals" % name_str)
 
     def clear_display(self):
         if len(self._table_content_dict) > 0:
@@ -506,6 +517,13 @@ class GuiWindow:
                 chem_id_list.append(self._treeview_table.insert(parent=ingredient_name, index=tk.END, values=item))
 
         self._table_content_dict[ingredient_name] = chem_id_list
+
+    def log_action(self, description: str):
+        self._text_log['state'] = 'normal'
+        self._text_log.insert(tk.END, description + '\n')
+        self._text_log['state'] = 'disabled'
+        self._text_log.yview(tk.END)
+        self._text_log.update()
 
     @property
     def get_ingredient_data(self) -> dict:
@@ -541,8 +559,8 @@ class GuiWindow:
         filetypes_tpl = ('Comma separated value', '.csv',)
         self._file_path_str = tk.filedialog.asksaveasfilename(defaultextension='.csv')
         if self._file_path_str != '':
-            print("Writing new data file...")
-            print("# of ingredients to write: %s" % len(self._ingredient_data_dict))
+            self.log_action("Writing new data file...")
+            self.log_action("# of ingredients to write: %s" % len(self._ingredient_data_dict))
 
             ingredient_file = open(self._file_path_str, "wt")
             csv_writer = csv.writer(ingredient_file)
@@ -557,11 +575,13 @@ class GuiWindow:
             csv_writer.writerow(header_list)
             csv_writer.writerows(body_lines_list)
             ingredient_file.close()
+            self.log_action("New file created successfully")
 
     def read_ingredient_file(self):
         self._file_path_str = tk.filedialog.askopenfilename(defaultextension='.csv')
         if self._file_path_str != '':
-            print("Importing file from path '%s' ..." % self._file_path_str)
+            self.log_action("Importing file from path '%s' ..." % self._file_path_str)
+            self.log_action("Current items in database: %s ..." % len(self._ingredient_data_dict))
             file = open(self._file_path_str, newline='')
             csv_reader = csv.reader(file)
             header_list = csv_reader.__next__()
@@ -606,10 +626,13 @@ class GuiWindow:
                             break
 
             file.close()
+            self.log_action("Import successful. Items in database: %s" % len(self._ingredient_data_dict))
+
 
     def clear_database(self):
         self._ingredient_data_dict.clear()
         self.clear_display()
+        self.log_action("Database emptied.")
 
 def _check_num(newval):
     return re.match('^[0-9]*$', newval) is not None and len(newval) <= 3
