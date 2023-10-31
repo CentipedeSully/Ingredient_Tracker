@@ -5,7 +5,7 @@ from tkinter import scrolledtext
 import Ingredient_Class as Ingredient
 import re
 import csv
-
+import os
 
 
 # noinspection PyTypeChecker,PyUnusedLocal,SpellCheckingInspection
@@ -13,6 +13,7 @@ class GuiWindow:
     def __init__(self, root_window, title_str, window_width, window_height):
         # INITIALIZE:
         self.root = root_window
+        self.root.resizable(False, False)
         self.title = title_str
         self._width = window_width
         self._height = window_height
@@ -38,8 +39,7 @@ class GuiWindow:
         self._menu_dict['file'].add_command(label="Import CSV", command=self.read_ingredient_file)
         self._menu_dict['file'].add_command(label="Export CSV", command=self.write_ingredient_file)
 
-        self._menubar.add_cascade(label= "File", menu= self._menu_dict['file'])
-
+        self._menubar.add_cascade(label="File", menu=self._menu_dict['file'])
 
         # persistent filepath
         self._filename_str = ''
@@ -162,18 +162,14 @@ class GuiWindow:
         self._btn_dict["clear"].bind('<Button-1>', self.clear_entries)
         self._btn_dict["submit"].bind('<Button-1>', self.submit_query)
 
-
         # Logger Contents
-        self._text_log = tk.scrolledtext.ScrolledText(master=self._frame_dict['body'], state='disabled', height=15, width=45)
-        self._text_log.grid(row=1,column=1, sticky='nesw')
-
-
+        self._text_log = tk.scrolledtext.ScrolledText(master=self._frame_dict['body'], state='disabled', height=15,
+                                                      width=45)
+        self._text_log.grid(row=1, column=1, sticky='nesw')
 
         # Run application
         self.enter_search_context(None)
         self.root.mainloop()
-
-
 
     def enter_search_context(self, event):
         if self._context != 'search':
@@ -306,7 +302,6 @@ class GuiWindow:
 
     def remove_chemical_entry(self):
         if self._number_of_chemical_entries > 0:
-
             # calculate row
             row = self._number_of_chemical_entries - 1
             print("Removing row %s of chemcial entries..." % row)
@@ -520,7 +515,7 @@ class GuiWindow:
 
     def log_action(self, description: str):
         self._text_log['state'] = 'normal'
-        self._text_log.insert(tk.END, description + '\n')
+        self._text_log.insert(tk.END, description + '\n\n')
         self._text_log['state'] = 'disabled'
         self._text_log.yview(tk.END)
         self._text_log.update()
@@ -568,8 +563,10 @@ class GuiWindow:
             body_lines_list = list()
             for key in self._ingredient_data_dict:
                 for chemical in self._ingredient_data_dict[key].composition_dict:
-                    print('[%s, %s, %s]' % (str(key), str(chemical), str(self._ingredient_data_dict[key].composition_dict[chemical])))
-                    line_list = [str(key), str(chemical), str(self._ingredient_data_dict[key].composition_dict[chemical])]
+                    print('[%s, %s, %s]' % (
+                    str(key), str(chemical), str(self._ingredient_data_dict[key].composition_dict[chemical])))
+                    line_list = [str(key), str(chemical),
+                                 str(self._ingredient_data_dict[key].composition_dict[chemical])]
                     body_lines_list.append(line_list)
 
             csv_writer.writerow(header_list)
@@ -580,7 +577,8 @@ class GuiWindow:
     def read_ingredient_file(self):
         self._file_path_str = tk.filedialog.askopenfilename(defaultextension='.csv')
         if self._file_path_str != '':
-            self.log_action("Importing file from path '%s' ..." % self._file_path_str)
+            head, tail = os.path.split(self._file_path_str)
+            self.log_action("Importing file '%s'..." % tail)
             self.log_action("Current items in database: %s ..." % len(self._ingredient_data_dict))
             file = open(self._file_path_str, newline='')
             csv_reader = csv.reader(file)
@@ -588,7 +586,8 @@ class GuiWindow:
             print("Header contents: %s" % header_list)
 
             if len(header_list) == 3:
-                if header_list[0].lower() == "ingredient" and header_list[1].lower() == "chemical" and header_list[2].lower() == "value":
+                if header_list[0].lower() == "ingredient" and header_list[1].lower() == "chemical" and header_list[
+                    2].lower() == "value":
                     ingredient_records_list = list()
                     for row in csv_reader:
                         # watch for the stop iteration exception
@@ -628,11 +627,11 @@ class GuiWindow:
             file.close()
             self.log_action("Import successful. Items in database: %s" % len(self._ingredient_data_dict))
 
-
     def clear_database(self):
         self._ingredient_data_dict.clear()
         self.clear_display()
         self.log_action("Database emptied.")
+
 
 def _check_num(newval):
     return re.match('^[0-9]*$', newval) is not None and len(newval) <= 3
