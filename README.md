@@ -14,7 +14,7 @@ THE PROBLEM:
 
 
 HOW TO USE THIS INGREDIENT TRACKER:
-  1) Download the "Ingredient Tracker.exe" file and run it
+  1) Download the "Ingredient Tracker.exe" file and run it. It's located within the dist folder
   2) From there you can experiment with the tool. Select a CONTEXT button (find/+/-). These buttons define the context of the operation. "Find" displays all relevant data that matches your criteria to the output table.
      "+" either adds a new ingredient (if the ingredient doesn't exist) or it updates a matching ingredient with new data. You can both add new chemicals and update prexisting ones in the same operation.
      "-" removes data from the application. To remove an ingredient, submit its name only. Otherwise specifiy the ingredient along with the chemicals you wish to remove before submission. If there aren't enough
