@@ -345,7 +345,10 @@ class GuiWindow:
         # get the ingredient name
         name_str = self._ent_dict["ingredient"].get()
 
-        # get the chemical entries
+        # format the input
+        name_str = name_str.lower()
+
+        # get AND FORMAT the chemical entries
         chem_dict = dict()
         if self._number_of_chemical_entries > 0:
             for index in range(0, self._number_of_chemical_entries):
@@ -354,6 +357,10 @@ class GuiWindow:
                     continue
 
                 else:
+                    # format the chemical string
+                    chem_str = self._chem_entry_dict[index].get().lower()
+
+                    # Determine how to build the entry... Search, Add, or Remove
                     if self._context == "search":
                         # create a tuple as a min,max range from the min/max entries
                         # these are gauranteed to be either integer strings or blank strings
@@ -374,17 +381,17 @@ class GuiWindow:
 
                         valid_min = min(min_value, max_value)
                         valid_max = max(min_value, max_value)
-                        chem_dict[self._chem_entry_dict[index].get()] = (valid_min, valid_max)
+                        chem_dict[chem_str] = (valid_min, valid_max)
 
 
                     elif self._context == 'add' or self._context == "remove":
-                        # when adding to the database, we don't care about the max_value entry field
+                        # when adding/removing from the database, we don't care about the max_value entry field
                         # the min entry field will default to 1 if no value is given
 
                         value = self._min_entry_dict[index].get()
                         if value == '':
                             value = 1
-                        chem_dict[self._chem_entry_dict[index].get()] = value
+                        chem_dict[chem_str] = value
 
         if self._context == 'search':
             self.search_entry(name_str, chem_dict)
@@ -585,6 +592,7 @@ class GuiWindow:
             header_list = csv_reader.__next__()
             print("Header contents: %s" % header_list)
 
+            # Make sure our file is formatted properly before extracting any data
             if len(header_list) == 3:
                 if header_list[0].lower() == "ingredient" and header_list[1].lower() == "chemical" and header_list[
                     2].lower() == "value":
@@ -615,12 +623,14 @@ class GuiWindow:
                                 continue
 
                             # Add the ingredient to the ingredient dictionary if it doesn't exist
-                            if row[0] not in self._ingredient_data_dict:
-                                new_ingredient = Ingredient.Ingredient(row[0])
-                                self._ingredient_data_dict[row[0]] = new_ingredient
+                            name_str = row[0].lower()
+                            if name_str not in self._ingredient_data_dict:
+                                new_ingredient = Ingredient.Ingredient(name_str)
+                                self._ingredient_data_dict[name_str] = new_ingredient
 
                             # Add the chemical and value to the existing ingredient
-                            self._ingredient_data_dict[row[0]].composition_dict[row[1]] = row[2]
+                            chem_name = row[1].lower()
+                            self._ingredient_data_dict[name_str].composition_dict[chem_name] = row[2]
                         except StopIteration:
                             break
 
